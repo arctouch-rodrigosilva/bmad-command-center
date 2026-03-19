@@ -1,0 +1,41 @@
+{
+  "name": "bmadpilot",
+  "displayName": "BMADPilot",
+  "description": "BMAD Command Center and artifact-driven launcher for Cursor",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": ["onView:bmadpilot.commandCenter"],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "bmadpilot.helloWorld",
+        "title": "Hello World"
+      }
+    ],
+    "views": {
+      "explorer": [
+        {
+          "id": "bmadpilot.commandCenter",
+          "name": "BMAD Command Center"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "test": "npm run compile"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0"
+  }
+}
