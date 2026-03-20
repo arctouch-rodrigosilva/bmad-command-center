@@ -58,7 +58,7 @@ NFR-S2: No user credentials or payment data are collected or processed by the ex
 - **Starter template:** Initialize extension with generator-code (yo code), TypeScript: `yo code --extensionType ts --extensionId bmadpilot --extensionDescription "BMAD Command Center and artifact-driven launcher for Cursor" --pkgManager npm`. This is the first implementation story (Epic 1 Story 1).
 - **Phase inference:** Implement as a pure function (workspace paths + file existence → phase + recommended action); testable in isolation without VS Code API in core logic; no side effects.
 - **Artifact detection:** Lightweight, synchronous path-existence checks; results cached per refresh; no heavy parsing in hot path; no VS Code API in core so unit-testable.
-- **Command Center surface:** Tree View for MVP (TreeDataProvider); no webview in MVP.
+- **Command Center surface:** **Hybrid MVP** — primary **WebviewPanel** (editor area, tile-style launcher via `bmadpilot.openCommandCenterPanel`) plus **sidebar Tree View** (Explorer) for status placeholders and quick open (view title + tree row). Both public VS Code APIs. Epic 2–3 wire phase and BMAD actions into both surfaces as needed.
 - **Chat invocation:** Use VS Code/Cursor command to open chat with predefined BMAD command string; extension does not execute BMAD workflows internally.
 - **Project structure:** Follow Architecture document: `src/phaseInference/`, `src/artifactDetection/`, `src/views/commandCenter/`, `src/commands/`; single Phase and RecommendedAction types; command IDs and prompts in one place (e.g. `src/commands/prompts.ts`).
 - **Error handling:** Artifact detection or inference failure must not throw; return safe state (e.g. phase `empty`, recommended action `help`); view shows "Unable to infer phase" and full action list when inference fails.
@@ -100,7 +100,7 @@ FR25: Epic 5 - Global Mode preference (Post-MVP)
 ## Epic List
 
 ### Epic 1: Extension foundation and Command Center
-User can install BMADPilot and open a dedicated Command Center view that is the primary BMAD surface in the IDE, without losing plugin state when switching views.
+User can install BMADPilot and open the Command Center as the primary BMAD surface: **full panel in the editor** (main launcher) plus a **compact sidebar tree**, without losing plugin state when switching views.
 **FRs covered:** FR1, FR5, FR21, FR22, FR23
 
 ### Epic 2: Phase and context from the repo
@@ -123,7 +123,7 @@ User can set global Model and Mode preferences in the Command Center that apply 
 
 ## Epic 1: Extension foundation and Command Center
 
-User can install BMADPilot and open a dedicated Command Center view that is the primary BMAD surface in the IDE, without losing plugin state when switching views.
+User can install BMADPilot and open the Command Center as the primary BMAD surface: **editor-area webview panel** (tile launcher) and **Explorer Tree View** (status + shortcuts), without losing plugin state when switching views.
 
 ### Story 1.1: Initialize extension with generator-code (TypeScript)
 
@@ -213,7 +213,7 @@ So that I always see current status without manual configuration.
 
 **Given** artifact detection and phase inference are implemented  
 **When** the Command Center view is opened or refreshed  
-**Then** the Tree View shows "Where you are" and "What's next" text derived from PhaseResult (FR2, FR3)  
+**Then** the Command Center **tree** and **webview panel** (when open) show "Where you are" and "What's next" text derived from PhaseResult (FR2, FR3)  
 **And** detection/inference runs asynchronously or in a non-blocking way so the UI thread is not blocked (NFR-P2)  
 **And** artifact scan completes within 2 seconds for a typical workspace (NFR-P1)  
 **And** the view refreshes when the user reopens the view or when workspace/configuration change is detected, so updated artifacts are reflected (FR4)  
@@ -250,7 +250,7 @@ So that I can start any workflow in one or two steps and none are disabled by ph
 
 **Given** the Command Center is open  
 **When** I look at the view  
-**Then** all supported BMAD actions are visible as Tree items (or equivalent) and are clickable (FR12)  
+**Then** all supported BMAD actions are visible as Tree items and/or **webview tiles** (or equivalent) and are clickable (FR12)  
 **And** clicking an action opens chat with the correct BMAD command (FR11)  
 **And** the recommended next action is reachable in one click from the Command Center (FR13)  
 **And** no action is disabled based on current phase (recommend, don’t block)

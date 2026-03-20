@@ -20,7 +20,7 @@ _This document builds collaboratively through step-by-step discovery. Sections a
 ### Requirements Overview
 
 **Functional Requirements:**
-- **Command Center & status (FR1–5):** One primary view; "Where you are" / "What's next"; view updates on repo changes; no loss of plugin state when switching views.
+- **Command Center & status (FR1–5):** Primary **editor-area webview panel** for launcher tiles + **sidebar Tree View** for compact status; "Where you are" / "What's next"; surfaces update on repo changes; no loss of plugin state when switching views.
 - **Phase & context inference (FR6–9):** Infer phase from workspace paths and artifact presence; single recommended next action from BMAD sequencing; distinguish upstream (discovery, planning, architecture) vs downstream (execution); handle empty/non-BMAD workspaces with sensible fallback.
 - **Action launcher (FR10–14):** Actions map to BMAD commands; triggering an action opens Cursor chat and runs that command (execution in chat, not in extension); all actions always available (recommend, don't block); recommended action reachable in one or two steps and visually emphasized.
 - **Artifact detection (FR15–18):** Detect key BMAD artifacts via workspace paths; use known folder structure (`_bmad-output`, planning-artifacts, implementation-artifacts, config); no manual phase config; read-only—no writes from inference or recommendation.
@@ -37,7 +37,7 @@ _This document builds collaboratively through step-by-step discovery. Sections a
 **Scale & Complexity:**
 - Primary domain: IDE extension (developer tool).
 - Complexity level: Low.
-- Estimated architectural components: Command Center view; phase-inference module; artifact-detection module; action/command layer (launch chat with BMAD command); config/workspace reader.
+- Estimated architectural components: Command Center (**webview panel + tree**); phase-inference module; artifact-detection module; action/command layer (launch chat with BMAD command); config/workspace reader.
 
 ### Technical Constraints & Dependencies
 
@@ -88,7 +88,7 @@ yo code --extensionType ts --extensionId bmadpilot --extensionDescription "BMAD 
 - Standard `package.json` with `main`, `engines.vscode`, activation events, and contribution points (commands, views when added).
 
 **Styling Solution:**
-- Not applicable for MVP (no custom UI framework). Any future webview can adopt a styling approach when that scope is added.
+- Command Center webview uses VS Code theme CSS variables and inline HTML/CSS (no SPA framework). Optional later: extracted `media/` assets if the panel grows.
 
 **Build Tooling:**
 - Default: TypeScript compile. Optional `--bundle` (webpack or esbuild) available from generator for smaller install or webview; can be introduced later if needed.
@@ -109,7 +109,7 @@ yo code --extensionType ts --extensionId bmadpilot --extensionDescription "BMAD 
 ### Decision Priority Analysis
 
 **Critical Decisions (Block Implementation):**
-- Command Center surface: Tree View (MVP) so status and actions are visible without a webview; keeps MVP within public API and avoids webview complexity.
+- Command Center surface: **Hybrid MVP** — primary **WebviewPanel** in the editor area (large tiles / actions, `bmadpilot.openCommandCenterPanel`) plus a **companion sidebar Tree View** in Explorer (status placeholders, view-title button, and “Open full Command Center” row). Both use public VS Code APIs only; webview uses CSP + `postMessage` for actions.
 - Phase inference: Pure function (workspace paths + file existence → phase + recommended action); testable in isolation; no side effects.
 - Chat invocation: Use VS Code/Cursor command to open chat with a specific prompt/command string; extension does not execute BMAD workflows internally.
 
@@ -119,7 +119,7 @@ yo code --extensionType ts --extensionId bmadpilot --extensionDescription "BMAD 
 - Minimum host: Document minimum Cursor/VS Code version for `engines.vscode` in package.json.
 
 **Deferred Decisions (Post-MVP):**
-- Webview for richer Command Center UI; Tree View suffices for MVP.
+- Optional **bundled media** (CSS/JS as separate files under `media/`) or a small UI toolkit for the Command Center webview if the inline template grows unwieldy.
 - Global Model/Mode selectors (Phase 2); no extension state for chat defaults in MVP.
 - Bundling (webpack/esbuild); use default TS compile for MVP unless bundle size becomes an issue.
 
@@ -142,9 +142,9 @@ yo code --extensionType ts --extensionId bmadpilot --extensionDescription "BMAD 
 
 ### Frontend Architecture
 
-- **Command Center:** Implemented as a **Tree View** for MVP (contributions.views; TreeDataProvider). Nodes for "Where you are," "What's next," and action items; recommended action visually distinct (e.g. icon or label).
-- **State management:** Single source of truth = output of phase-inference (phase + recommendedActionId). View subscribes to refresh when workspace or config may have changed (e.g. onDidChangeWorkspaceFolders, or onViewVisibility).
-- **No React/Vue.** Native VS Code Tree View only for MVP. If a webview is added later, adopt a clear pattern (e.g. single webview panel, message passing).
+- **Command Center (MVP):** **Dual surface.** (1) **Webview panel** — `createWebviewPanel` for the primary, editor-area experience (tile-style actions, theming via VS Code CSS variables, `retainContextWhenHidden` where applicable). Opened via command palette, `view/title` menu on the sidebar view, or tree item command. (2) **Sidebar Tree View** — `TreeDataProvider` under Explorer for compact status (“Where you are” / “What’s next” placeholders until Epic 2) and launcher entry points.
+- **State management:** Single source of truth = output of phase-inference (phase + recommendedActionId). **Tree** refreshes when workspace or config may have changed. **Webview** updates when the panel is shown or when the extension pushes new HTML/state (post–Epic 2: prefer one refresh helper that updates both surfaces).
+- **No React/Vue in host.** Webview content is plain HTML/CSS/JS (or future extracted assets). Tree View remains native API only.
 
 ### Infrastructure & Deployment
 
@@ -159,7 +159,7 @@ yo code --extensionType ts --extensionId bmadpilot --extensionDescription "BMAD 
 1. Initialize extension with generator-code (TypeScript).
 2. Implement artifact detection (path existence, BMAD layout).
 3. Implement phase inference (pure function, unit-tested).
-4. Register Command Center Tree View and wire to phase + actions.
+4. Register Command Center **sidebar Tree View** + **open-panel command / webview**; wire both to phase + actions when inference exists.
 5. Register BMAD commands that open chat with the correct prompt.
 6. Add refresh behavior and error degradation.
 
@@ -185,13 +185,13 @@ yo code --extensionType ts --extensionId bmadpilot --extensionDescription "BMAD 
 
 **Project Organization:**
 - **Phase inference and artifact detection:** Dedicated modules under `src/` (e.g. `src/phaseInference/`, `src/artifactDetection/`). Export a single public function or small API (e.g. `inferPhase(workspaceRoot): PhaseResult`; `detectArtifacts(workspaceRoot): ArtifactSet`). Keep them dependency-free on VS Code API where possible so they are unit-testable.
-- **Views:** Command Center Tree View in `src/views/commandCenter/` (or `src/commandCenter/`) with TreeDataProvider and any view-specific types. Views may depend on phase inference and commands.
+- **Views:** Command Center in `src/views/commandCenter/`: `commandCenterProvider.ts` (TreeDataProvider), `commandCenterPanel.ts` (webview panel factory + HTML), and optional `types.ts` / `commandCenterView.ts` as the codebase grows. Views may depend on phase inference and commands.
 - **Commands:** Register in `package.json` contributions; implement in `src/commands/` (one file per command or one file that registers all). Commands call Cursor/VS Code API to open chat with the chosen BMAD command string.
 - **Tests:** Co-located or in `src/**/__tests__/` for unit tests (e.g. `phaseInference.test.ts`). Place integration or extension-host tests under `test/` or `tests/` at root if needed.
 
 **File Structure:**
 - Config: `package.json` for extension metadata and contributions; no separate app config file required for MVP. BMAD layout is read from workspace.
-- Entry: `src/extension.ts` activates the extension, registers the Tree View and commands.
+- Entry: `src/extension.ts` activates the extension, registers the Tree View, webview command, and (later) BMAD commands.
 
 ### Format Patterns
 
@@ -252,9 +252,9 @@ bmadpilot/
 │   │   └── types.ts
 │   ├── views/
 │   │   └── commandCenter/
-│   │       ├── commandCenterView.ts
+│   │       ├── commandCenterPanel.ts
 │   │       ├── commandCenterProvider.ts
-│   │       └── types.ts
+│   │       └── types.ts   (optional; add when shared types are extracted)
 │   └── commands/
 │       ├── index.ts
 │       ├── prompts.ts
@@ -270,7 +270,7 @@ bmadpilot/
 **Component Boundaries:**
 - **artifactDetection:** Input: workspace root path. Output: ArtifactSet. No VS Code API in core; used only by phaseInference.
 - **phaseInference:** Input: workspace root (or ArtifactSet). Output: PhaseResult. No VS Code API in core; used by commandCenterView and (optionally) commands.
-- **views/commandCenter:** TreeDataProvider; subscribes to refresh; calls phaseInference and renders TreeItems; handles loading/error state.
+- **views/commandCenter:** TreeDataProvider + webview panel; subscribes to refresh / updates panel content; calls phaseInference and renders TreeItems and (when open) webview state; handles loading/error state.
 - **commands:** Register with extension context; call openChat with prompt from prompts.ts; no phase-based enablement (all actions always available).
 
 **Service Boundaries:** No backend services. External boundary: Cursor/VS Code host (workspace API, commands API, view API). Chat is invoked via host command, not in-process.
@@ -295,7 +295,7 @@ bmadpilot/
 
 **External:** Workspace (read-only), Cursor/VS Code command to open chat. No other external integrations for MVP.
 
-**Data Flow:** Workspace paths → artifactDetection → ArtifactSet → phaseInference → PhaseResult → commandCenterView (TreeItems). User click on action → command → openChat(prompt) → host opens chat.
+**Data Flow:** Workspace paths → artifactDetection → ArtifactSet → phaseInference → PhaseResult → Command Center **tree** and **webview panel** (when visible). User click on action (tree or webview) → command → openChat(prompt) → host opens chat.
 
 ### File Organization Patterns
 
@@ -305,7 +305,7 @@ bmadpilot/
 
 **Tests:** Unit tests co-located under `src/phaseInference/__tests__/`; optional `test/extension/` for extension-host tests.
 
-**Assets:** No static assets required for MVP (Tree View only). If webview added later, use a `media/` or `webview/` folder.
+**Assets:** Webview MVP uses **inline HTML** in `commandCenterPanel.ts`. Optional later: move styles/scripts to `media/` for maintainability.
 
 ### Development Workflow Integration
 
@@ -317,7 +317,7 @@ bmadpilot/
 
 ### Coherence Validation ✅
 
-**Decision Compatibility:** Technology choices are consistent: TypeScript, VS Code extension API, Tree View for Command Center, pure phase inference, no backend. Starter (generator-code) aligns with all decisions. No version or pattern conflicts.
+**Decision Compatibility:** Technology choices are consistent: TypeScript, VS Code extension API, Command Center as **webview panel + sidebar Tree View**, pure phase inference, no backend. Starter (generator-code) aligns with all decisions. No version or pattern conflicts.
 
 **Pattern Consistency:** Naming (camelCase/PascalCase, command IDs), structure (phaseInference, artifactDetection, views, commands), and process (error degradation, no throw from inference) are aligned across the document.
 
@@ -325,13 +325,13 @@ bmadpilot/
 
 ### Requirements Coverage Validation ✅
 
-**Functional Requirements Coverage:** All FR categories are mapped to components: Command Center (views), phase inference (phaseInference), artifact detection (artifactDetection), action launcher (commands), onboarding/empty (phase 'empty' + Help), per-workspace behavior (no shared state). FR24–25 deferred to post-MVP.
+**Functional Requirements Coverage:** All FR categories are mapped to components: Command Center (`views/commandCenter`: tree + webview panel), phase inference (phaseInference), artifact detection (artifactDetection), action launcher (commands), onboarding/empty (phase 'empty' + Help), per-workspace behavior (no shared state). FR24–25 deferred to post-MVP.
 
 **Non-Functional Requirements Coverage:** Performance (NFR-P): async/non-blocking refresh, lightweight detection. Reliability (NFR-R): degrade to safe state, no throw. Integration (NFR-I): public API only; min version in package.json. Security (NFR-S): read-only, no transmit, no credentials.
 
 ### Implementation Readiness Validation ✅
 
-**Decision Completeness:** Critical decisions (Tree View, pure inference, chat invocation) and important ones (artifact detection approach, BMAD action set, min host) are documented. Deferred items (webview, Model/Mode, bundling) are called out.
+**Decision Completeness:** Critical decisions (hybrid Command Center UI, pure inference, chat invocation) and important ones (artifact detection approach, BMAD action set, min host) are documented. Deferred items (extra webview assets/toolkit, Model/Mode, bundling) are called out.
 
 **Structure Completeness:** Full project tree with src/phaseInference, src/artifactDetection, src/views/commandCenter, src/commands, tests. Entry and contributions are specified.
 
@@ -343,11 +343,11 @@ bmadpilot/
 
 **Important Gaps:** Exact Cursor command for "open chat with prompt" should be verified during implementation (API may be `cursor.chat.open` or similar). Phase enum and BMAD action list should be kept in sync with canonical BMAD workflows.
 
-**Nice-to-Have:** Optional integration test that runs extension in Extension Development Host and asserts Tree View content for a mock workspace. Document BMAD version/capabilities assumed.
+**Nice-to-Have:** Optional integration test that runs extension in Extension Development Host and asserts Tree View and/or webview panel content for a mock workspace. Document BMAD version/capabilities assumed.
 
 ### Validation Issues Addressed
 
-No blocking issues. Recommendation: implement phase inference and artifact detection first with unit tests; then wire view and commands so that inference is the single source of truth.
+No blocking issues. Recommendation: implement phase inference and artifact detection first with unit tests; then wire **tree + webview panel** and commands so that inference is the single source of truth.
 
 ### Architecture Completeness Checklist
 
@@ -383,7 +383,7 @@ No blocking issues. Recommendation: implement phase inference and artifact detec
 
 **Key Strengths:** Single source of truth for phase; testable inference and detection; clear boundaries; no backend or auth complexity; recommend-don't-block preserved in structure.
 
-**Areas for Future Enhancement:** Webview for richer UI; Global Model/Mode; optional bundling; integration tests in Extension Development Host.
+**Areas for Future Enhancement:** Richer webview layout and `media/` assets; Global Model/Mode; optional bundling; integration tests in Extension Development Host.
 
 ### Implementation Handoff
 
@@ -393,4 +393,4 @@ No blocking issues. Recommendation: implement phase inference and artifact detec
 - Respect project structure and boundaries (artifactDetection → phaseInference → view/commands).
 - Refer to this document for all architectural questions.
 
-**First Implementation Priority:** Initialize the extension with the starter: `npm install -g yo generator-code` then `yo code --extensionType ts --extensionId bmadpilot --extensionDescription "BMAD Command Center and artifact-driven launcher for Cursor" --pkgManager npm` (or interactive `yo code`). Then implement artifact detection, phase inference (with unit tests), Command Center Tree View, and BMAD commands in that order.
+**First Implementation Priority:** Initialize the extension with the starter: `npm install -g yo generator-code` then `yo code --extensionType ts --extensionId bmadpilot --extensionDescription "BMAD Command Center and artifact-driven launcher for Cursor" --pkgManager npm` (or interactive `yo code`). Then implement artifact detection, phase inference (with unit tests), Command Center (**sidebar tree + open-panel webview**), and BMAD commands in that order.

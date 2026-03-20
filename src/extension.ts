@@ -1,9 +1,12 @@
 import * as vscode from 'vscode';
+import { registerCommandCenterPanel } from './views/commandCenter/commandCenterPanel';
 import { CommandCenterProvider } from './views/commandCenter/commandCenterProvider';
 
 const VIEW_ID = 'bmadpilot.commandCenter';
 
 export function activate(context: vscode.ExtensionContext) {
+	registerCommandCenterPanel(context);
+
 	const disposable = vscode.commands.registerCommand('bmadpilot.helloWorld', () => {
 		try {
 			vscode.window.showInformationMessage('Hello World from BMADPilot!');

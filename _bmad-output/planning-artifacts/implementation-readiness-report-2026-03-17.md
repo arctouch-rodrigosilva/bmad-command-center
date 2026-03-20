@@ -135,8 +135,8 @@ N/A — no UX document to compare against PRD or Architecture.
 
 ### Warnings
 
-- **UX/UI implied by PRD:** The PRD describes a user-facing Command Center (Tree View), "Where you are" / "What's next" summary, action buttons, empty state, and Help. UI is a core part of the product.
-- **Mitigation:** Architecture explicitly defines the UI surface (Tree View for MVP, TreeDataProvider, no webview). Epics and stories address Command Center view, phase display, actions, and onboarding. A dedicated UX spec would strengthen consistency and accessibility but is not blocking; implementation can proceed with PRD + Architecture + epics as the source of UI behavior.
+- **UX/UI implied by PRD:** The PRD describes a user-facing Command Center (primary editor webview + sidebar tree), "Where you are" / "What's next" summary, action tiles/buttons, empty state, and Help. UI is a core part of the product.
+- **Mitigation:** Architecture defines the **hybrid** UI surface (WebviewPanel + TreeDataProvider). Epics and stories address Command Center surfaces, phase display, actions, and onboarding. A dedicated UX spec would strengthen consistency and accessibility but is not blocking; implementation can proceed with PRD + Architecture + epics as the source of UI behavior.
 
 ---
 
@@ -154,7 +154,7 @@ N/A — no UX document to compare against PRD or Architecture.
 
 **Starter template:** Architecture specifies generator-code (yo code). Epic 1 Story 1 is "Initialize extension with generator-code (TypeScript)" and includes scaffold, F5 run, and engines.vscode. ✓
 
-**Database/entities:** N/A (no database; extension is read-only workspace + Tree View). ✓
+**Database/entities:** N/A (no database; extension is read-only workspace + Command Center webview + Tree View). ✓
 
 **Acceptance criteria:** Stories use Given/When/Then/And; ACs are testable and reference FRs/NFRs where relevant. ✓
 

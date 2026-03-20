@@ -195,7 +195,7 @@ BMADPilot is a Cursor extension (developer tool) that provides a BMAD Command Ce
 
 ### API Surface (Extension & Commands)
 
-- **Extension surface:** (1) **Views:** Command Center (primary view); optional panels for status or shortcuts. (2) **Commands:** One command per BMAD workflow (e.g. Create PRD, Create architecture, Create epics, Dev Story, Code Review, Help). Each command opens chat with the corresponding BMAD command (e.g. `bmad-bmm-create-prd`). (3) **Workspace:** Read-only access to detect artifacts and infer phase; no requirement to implement write from the extension beyond invoking user workflows (e.g. skills that write files).
+- **Extension surface:** (1) **Views:** Command Center as **primary WebviewPanel** in the editor (tile-style launcher) plus **sidebar Tree View** in Explorer (compact status and shortcuts). (2) **Commands:** Palette command to open the panel (e.g. `bmadpilot.openCommandCenterPanel`); one command per BMAD workflow (e.g. Create PRD, Dev Story, Help). Each workflow command opens chat with the corresponding BMAD command (e.g. `bmad-bmm-create-prd`). (3) **Workspace:** Read-only access to detect artifacts and infer phase; no requirement to implement write from the extension beyond invoking user workflows (e.g. skills that write files).
 - **Command contract:** Action buttons in the Command Center trigger commands that open the chat composer and run the chosen BMAD command so the agent runs in chat, not inside the extension UI.
 
 ### Code Examples & Onboarding

@@ -45,7 +45,7 @@ development_status:
   epic-1: in-progress
   1-1-initialize-extension-with-generator-code-typescript: done
   1-2-register-command-center-tree-view: done
-  1-3-show-minimal-command-center-content-and-preserve-state: backlog
+  1-3-show-minimal-command-center-content-and-preserve-state: review
   epic-1-retrospective: optional
   epic-2: backlog
   2-1-artifact-detection-module: backlog
