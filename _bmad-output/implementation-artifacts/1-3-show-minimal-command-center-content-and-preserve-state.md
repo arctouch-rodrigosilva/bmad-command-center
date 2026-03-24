@@ -1,6 +1,6 @@
 # Story 1.3: Show minimal Command Center content and preserve state
 
-Status: review
+Status: done
 
 <!-- Ultimate context engine analysis completed — comprehensive developer guide created. -->
 
@@ -141,3 +141,4 @@ Auto (Cursor agent)
 
 - 2026-03-19: Story 1.3 — placeholder descriptions/tooltips on Command Center tree; documented TreeView vs webview `retainContextWhenHidden`; compile verified.
 - 2026-03-19: Specification supplement — hybrid Command Center; AC/Dev Notes/File List aligned with webview panel + sidebar tree; README/architecture cross-references.
+- 2026-03-24: Sprint tracking set to `done` after review closure (aligned with story status).
